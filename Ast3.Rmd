@@ -1,0 +1,104 @@
+---
+title: Ast3
+---
+
+```{r}
+library(palmerpenguins)
+
+mpenguins <- penguins[which(penguins$sex == "male"),]
+
+mpenguins$isGentoo <- mpenguins$species == "Gentoo"
+
+zscale <- function(datacol){
+mu <- mean(datacol)
+sigma <- sd(datacol)
+result <- (datacol-mu)/sigma
+return(result)
+}
+
+mpenguins$zflipper_length_mm <- zscale(mpenguins$flipper_length_mm)
+mpenguins$zbill_depth_mm <- zscale(mpenguins$bill_depth_mm)
+mpenguins$zbill_length_mm <- zscale(mpenguins$bill_length_mm)
+mpenguins$zbody_mass_g <- zscale(mpenguins$body_mass_g)
+
+qscale <- function(datacol){
+return(ecdf(datacol)(datacol))
+}
+
+mpenguins$qflipper_length_mm <- qscale(mpenguins$flipper_length_mm)
+mpenguins$qbill_depth_mm <- qscale(mpenguins$bill_depth_mm)
+mpenguins$qbill_length_mm <- qscale(mpenguins$bill_length_mm)
+mpenguins$qbody_mass_g <- qscale(mpenguins$body_mass_g)
+
+d1 <- function(point1, point2){
+manhattan_dist <- dist(rbind(point1, point2), method = "manhattan")
+manhattan_dist_value <- as.matrix(manhattan_dist)[1, 2]
+return(manhattan_dist_value)
+}
+d2 <- function(point1, point2){
+euclidian_dist <- dist(rbind(point1, point2))
+euclidian_dist_value <- as.matrix(euclidian_dist)[1, 2]
+return(euclidian_dist_value )
+}
+X <- t(rbind(mpenguins$zbill_length_mm, mpenguins$zbill_depth_mm, 
+	   mpenguins$zflipper_length_mm, mpenguins$body_mass_g))
+n <- dim(X)[1]
+D1 <- matrix(nrow=n, ncol=n)
+D2 <- matrix(nrow=n, ncol=n)
+for (i in 1:n){
+	for (j in 1:i){
+		D1[i,j] <- D1[j, i] <- d1(X[i,], X[j,])
+		D2[i,j] <- D2[j, i] <- d2(X[i,], X[j,])
+	}
+}
+
+Kbox_i <- function(i, lambda=512, d=1){
+	ifelse(d==2, D<-D2, D<-D1)
+	dd <- D[i,]
+	return(ifelse(dd<lambda, 1, 0))
+}
+Kbox_i(74)
+
+Kbox_p <- function(x, lambda=512, d=1){
+	d <- ifelse(d==2, d2, d1)
+	result <- NULL
+	for (i in 1:n){
+		result <- c(result, ifelse(d(X[i,], x)<lambda,1,0))
+	}
+	return(result)
+}
+Kbox_p(X[74,])
+
+Ktri_i <- function(i, lambda=512, d=1){
+	ifelse(d==2, D<-D2, D<-D1)
+	dd <- D[i,]
+	return(ifelse(dd<lambda, (lambda-dd)/lambda, 0))
+}
+Ktri_i(74)
+
+Ktri_p <- function(x, lambda=512, d=1){
+	d <- ifelse(d==2, d2, d1)
+	result <- NULL
+	for (i in 1:n){
+		dd <- d(X[i,],x)
+		result <- c(result, ifelse(dd<lambda,(lambda-dd)/lambda,0))
+	}
+	return(result)
+}
+Ktri_p(X[74,])
+
+pred <- function(lambda, d, K){
+correct <- NULL
+for (i in 1:n){
+correct <- c(correct, ifelse(ifelse(sum(K(i, lambda=lambda, d=d)*mpenguins$isGentoo)/sum(K(i, lambda=lambda, d=d)) >= 0.5,T,F) == mpenguins$isGentoo[i], 1, 0))
+}
+print(correct)
+return(sum(correct)/n)
+}
+
+for (i in 1:n){
+	print(sum(Kbox_i(i)*mpenguins$isGentoo)/sum(Kbox_i(i)) > 0.5)
+}
+pred(lambda=255, d=1, Kbox_i)
+```
+

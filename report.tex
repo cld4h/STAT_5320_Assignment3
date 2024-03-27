@@ -1,0 +1,62 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+	%changes default margins
+
+\usepackage{setspace}
+\usepackage{multirow}
+\usepackage{booktabs}
+\doublespacing
+	%\singlespacing,\onehalfspacing,\doublespacing can be set and everything thereafter will use that spacing. You can switch within the document as often as you wish
+	
+\usepackage{parskip}
+%changes paragraphs to have an extra space and new indentation with paragraphs, rather than indenting every new paragraph. This is completely a stylistic choice and neither is better than the other.
+
+
+\usepackage{mathtools,amssymb} %useful math stuff. there are a lot of ams* packages. If you have a math need, it's probably in there
+
+	
+	
+%\usepackage{natbib}
+%\usepackage{biblatex} %natbib is older and available from almost all journals, biblatex is not, but biblatex has more flexibility and options.
+
+%\usepackage[natbib=true]{biblatex} %this often works and requires minimal changes 
+
+%for biblatex you write \textcite{citekey} and \parencite{citekey}
+%for natbib you write \citet{citekey} and \citep{citekey}. Please avoid using \cite{} since you won't control whether it's parenthetical, but you are responsible for whether you use something in text or parenthetically.
+%for \usepackage[natbib=true]{biblatex} you follow the natbib style and you won't have to perform search/replaces in your document, you would only need to change the package call and bibliography call.
+
+\usepackage{natbib}
+\bibliographystyle{chicago}
+
+%other useful packages
+% \usepackage{graphicx} %for including images including pdf
+
+
+
+\title{Ast3: Death's End}
+%\author{jsp ci 843503,\\ 
+%	eswst i; ,i;l 830097,\\ 
+%sjsms ,ovjs; 839866}
+\author{
+Hao Xu T00732492,\\
+Waqar Ul Mulk T00729986,\\
+Ahana Michael T00728755}
+\date{\today}
+
+\begin{document}
+	
+\maketitle
+
+\section{Question 1}
+
+\textbf{Because your response is binary (0 or 1), and you are modelling its expected value, what is your kernel smoother actually modelling? Hint: one of two words, both of which start with p.}
+
+\underline{Probability}
+
+\[
+P(\text{isGentoo}=1 \mid \mathbf{x}_0) = \hat{f}(\mathbf{x}_0) = \frac{\sum_{i=1}^{N} K_\lambda\left( \mathbf{x}_0, \mathbf{x}_i \right) y_i}{\sum_{i=1}^{N} K_\lambda\left( \mathbf{x}_0, \mathbf{x}_i \right)}
+\] 
+
+\end{document}
+
