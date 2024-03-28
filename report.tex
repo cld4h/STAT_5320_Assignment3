@@ -2,7 +2,7 @@
 
 \usepackage[margin=1in]{geometry}
 	%changes default margins
-
+\usepackage{subcaption} %subfigure
 \usepackage{setspace}
 \usepackage{multirow}
 \usepackage{booktabs}
@@ -108,6 +108,27 @@ Not creating a training/test partition is a bad idea because we can always use a
 \end{cases}\\
 \] 
 
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.6\textwidth}
+    \includegraphics[width=\textwidth]{ERROR-lambda}
+    \caption{Box Kernel}
+    \label{fig:first}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.6\textwidth}
+    \includegraphics[width=\textwidth]{ERROR-lambda2}
+    \caption{Triangle Kernel}
+    \label{fig:second}
+\end{subfigure}
+        
+\caption{ERROR-$\lambda$ plot}
+\label{fig:result}
+\end{figure}
+
+The average test error rates depends on (1) the kernel bandwidth $\lambda$, (2) the type of distance metric and (3) the type of Kernel. Figure~\ref{fig:result} plots the ERROR--$\lambda$ relation. Box Kernel is used in figure~\ref{fig:first} and Triangle Kernel is used in figure~\ref{fig:second}. Comparing those figures, we can see that quantile scaled data requires a smaller $\lambda$, whereas z-scored scaled data requires a relative larger $\lambda$. Also Manhattan distance metric requires a relative larger $\lambda$ compares to Euclidean distance.
+
+Additionally, we can see that Triangle Kernel performs more stable than Box Kernel (More tolerance to changes in $\lambda$).
 
 \end{document}
 
