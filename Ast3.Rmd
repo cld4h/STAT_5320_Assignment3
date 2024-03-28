@@ -4,101 +4,246 @@ title: Ast3
 
 ```{r}
 library(palmerpenguins)
-
+# Select the male penguins
 mpenguins <- penguins[which(penguins$sex == "male"),]
-
+# Add a new variable isGentoo
 mpenguins$isGentoo <- mpenguins$species == "Gentoo"
 
+# Using z-scores on each of the variables before applying distances
 zscale <- function(datacol){
 mu <- mean(datacol)
 sigma <- sd(datacol)
 result <- (datacol-mu)/sigma
 return(result)
 }
-
 mpenguins$zflipper_length_mm <- zscale(mpenguins$flipper_length_mm)
 mpenguins$zbill_depth_mm <- zscale(mpenguins$bill_depth_mm)
 mpenguins$zbill_length_mm <- zscale(mpenguins$bill_length_mm)
 mpenguins$zbody_mass_g <- zscale(mpenguins$body_mass_g)
 
+# Turning all (univariate) variables into quantiles
 qscale <- function(datacol){
 return(ecdf(datacol)(datacol))
 }
-
 mpenguins$qflipper_length_mm <- qscale(mpenguins$flipper_length_mm)
 mpenguins$qbill_depth_mm <- qscale(mpenguins$bill_depth_mm)
 mpenguins$qbill_length_mm <- qscale(mpenguins$bill_length_mm)
 mpenguins$qbody_mass_g <- qscale(mpenguins$body_mass_g)
 
+# Manhattan distance metric
 d1 <- function(point1, point2){
 manhattan_dist <- dist(rbind(point1, point2), method = "manhattan")
 manhattan_dist_value <- as.matrix(manhattan_dist)[1, 2]
 return(manhattan_dist_value)
 }
+# Euclidean distance metric
 d2 <- function(point1, point2){
 euclidian_dist <- dist(rbind(point1, point2))
 euclidian_dist_value <- as.matrix(euclidian_dist)[1, 2]
 return(euclidian_dist_value )
 }
+
 X <- t(rbind(mpenguins$zbill_length_mm, mpenguins$zbill_depth_mm, 
-	   mpenguins$zflipper_length_mm, mpenguins$body_mass_g))
-n <- dim(X)[1]
-D1 <- matrix(nrow=n, ncol=n)
-D2 <- matrix(nrow=n, ncol=n)
-for (i in 1:n){
-	for (j in 1:i){
-		D1[i,j] <- D1[j, i] <- d1(X[i,], X[j,])
-		D2[i,j] <- D2[j, i] <- d2(X[i,], X[j,])
-	}
-}
+	   mpenguins$zflipper_length_mm, mpenguins$zbody_mass_g))
 
-Kbox_i <- function(i, lambda=512, d=1){
-	ifelse(d==2, D<-D2, D<-D1)
-	dd <- D[i,]
-	return(ifelse(dd<lambda, 1, 0))
-}
-Kbox_i(74)
-
-Kbox_p <- function(x, lambda=512, d=1){
+# Box Kernel function, x is a point
+Kbox_p <- function(x, lambda=6, d=1, train.data){
 	d <- ifelse(d==2, d2, d1)
 	result <- NULL
+	n<-dim(train.data)[1]
 	for (i in 1:n){
-		result <- c(result, ifelse(d(X[i,], x)<lambda,1,0))
+		result <- c(result, ifelse(d(train.data[i,], x)<lambda,1,0))
 	}
 	return(result)
 }
-Kbox_p(X[74,])
+# Test on the 74th (1st Gentoo) data point
+Kbox_p(X[74,], lambda=6, d=1, train.data=X)
 
-Ktri_i <- function(i, lambda=512, d=1){
-	ifelse(d==2, D<-D2, D<-D1)
-	dd <- D[i,]
-	return(ifelse(dd<lambda, (lambda-dd)/lambda, 0))
-}
-Ktri_i(74)
-
-Ktri_p <- function(x, lambda=512, d=1){
+# Triangle Kernel function, x is a point
+Ktri_p <- function(x, lambda=6, d=1, train.data){
 	d <- ifelse(d==2, d2, d1)
 	result <- NULL
+	n<-dim(train.data)[1]
+	# print(n)
 	for (i in 1:n){
-		dd <- d(X[i,],x)
+		dd <- d(train.data[i,],x)
 		result <- c(result, ifelse(dd<lambda,(lambda-dd)/lambda,0))
 	}
 	return(result)
 }
-Ktri_p(X[74,])
+# Test on the 74th (1st Gentoo) data point
+Ktri_p(X[74,], lambda=6, d=1, X)
 
-pred <- function(lambda, d, K){
-correct <- NULL
+################## Test on z-score scaled variables ###################
+#X <- t(rbind(mpenguins$zbill_length_mm, mpenguins$zbill_depth_mm, 
+#	   mpenguins$zflipper_length_mm, mpenguins$zbody_mass_g))
+## 168 rows of data
+#n <- dim(X)[1]
+## Create distance matrix D1 for Manhattan, D2 for Euclidean
+#D1 <- matrix(nrow=n, ncol=n)
+#D2 <- matrix(nrow=n, ncol=n)
+#for (i in 1:n){
+#	for (j in 1:i){
+#		D1[i,j] <- D1[j, i] <- d1(X[i,], X[j,])
+#		D2[i,j] <- D2[j, i] <- d2(X[i,], X[j,])
+#	}
+#}
+#
+## check the calculation of distance
+#point1 <- c(mpenguins$zbill_length_mm[1],mpenguins$zbill_depth_mm[1],mpenguins$zflipper_length_mm[1],mpenguins$zbody_mass_g[1])
+#point2 <- c(mpenguins$zbill_length_mm[74],mpenguins$zbill_depth_mm[74],mpenguins$zflipper_length_mm[74],mpenguins$zbody_mass_g[74])
+#
+#d1(point1,point2)
+#d2(point1,point2)
+#
+## Box Kernel, for training only, i is the index of the data, deprecated.
+#Kbox_i <- function(i, lambda=6, d=1){
+#	ifelse(d==2, D<-D2, D<-D1)
+#	dd <- D[i,]
+#	return(ifelse(dd<lambda, 1, 0))
+#}
+#Kbox_i(74)
+#sum(Ktri_i(74))
+#
+## Triangle Kernel, for training only, i is the index of the data, deprecated.
+#Ktri_i <- function(i, lambda=6, d=1){
+#	ifelse(d==2, D<-D2, D<-D1)
+#	dd <- D[i,]
+#	return(ifelse(dd<lambda, (lambda-dd)/lambda, 0))
+#}
+#Ktri_i(74)
+#
+## to calculate the training accuracy, deprecated.
+#pred <- function(lambda, d, K){
+#correct <- NULL
+#for (i in 1:n){
+#pred_i <- ifelse(sum(K(i, lambda=lambda, d=d)*mpenguins$isGentoo)/sum(K(i, lambda=lambda, d=d)) >= 0.5,T,F)
+#correct <- c(correct, ifelse(pred_i == mpenguins$isGentoo[i], 1, 0))
+#}
+##print(correct)
+#return(sum(correct)/n)
+#}
+#
+#for (i in 1:n){
+#	print(sum(Kbox_i(i)*mpenguins$isGentoo)/sum(Kbox_i(i)) > 0.5)
+#}
+#
+#pred(lambda=6, d=1, Kbox_i)
+#pred(lambda=6, d=1, Ktri_i)
+#pred(lambda=3, d=2, Kbox_i)
+#pred(lambda=3, d=2, Ktri_i)
+#
+######################END deprecated code########################
+```
+
+# Cross validation
+
+```{r}
+# define the prediction funnction for each test fold
+# returns the error rate of current test data
+pred_points <- function(test.data, lambda, d, K_p, train.data){
+error <- NULL
+n <- dim(test.data)[1]
 for (i in 1:n){
-correct <- c(correct, ifelse(ifelse(sum(K(i, lambda=lambda, d=d)*mpenguins$isGentoo)/sum(K(i, lambda=lambda, d=d)) >= 0.5,T,F) == mpenguins$isGentoo[i], 1, 0))
+point_i <- test.data[i,-5]
+kernel_vector <- K_p(point_i, lambda=lambda, d=d, train.data[,-5])
+pred_i <- ifelse(sum(kernel_vector*train.data[,5])/sum(kernel_vector) >= 0.5,T,F)
+error <- c(error, ifelse(pred_i == test.data[i,5], 0, 1))
 }
-print(correct)
-return(sum(correct)/n)
+print(error)
+return(sum(error)/n)
+}
+```
+
+```{r}
+# scales == 1, z-scaled
+# scales == 2, quantiles
+# Kernel == 1, Box
+# Kernel == 2, Triangle
+training <- function(scales = 1, lambda = 6, d=1, Kernel=1 ){
+set.seed(123)
+# quantiles scaled data
+Xq <- t(rbind(mpenguins$qbill_length_mm, mpenguins$qbill_depth_mm, 
+	   mpenguins$qflipper_length_mm, mpenguins$qbody_mass_g, mpenguins$isGentoo))
+# z-score scaled data
+Xz <- t(rbind(mpenguins$zbill_length_mm, mpenguins$zbill_depth_mm, 
+	   mpenguins$zflipper_length_mm, mpenguins$zbody_mass_g, mpenguins$isGentoo))
+X <- Xz
+if (scales == 2){
+X <- Xq
+}
+Kfunc <- Kbox_p
+if ( Kernel == 2){
+Kfunc <- Ktri_p
+}
+X_shuffled = X[sample(nrow(X)),]
+K <- 10
+folds <- cut(seq(1, nrow(X_shuffled)), breaks=K, labels=FALSE)
+
+if (K <= 10){
+# print the sample sizes when K-folds, K<= 10
+print("Sample size of each fold")
+print(table(folds))
 }
 
-for (i in 1:n){
-	print(sum(Kbox_i(i)*mpenguins$isGentoo)/sum(Kbox_i(i)) > 0.5)
+pred.error <- NULL # to store the prediction error results
+
+print("Test result of each fold")
+for(i in 1:K){
+#Segement your data by fold using the which() function to hold-out (test sample)
+testIndexe <- which(folds==i, arr.ind=TRUE)
+# Split train-test set
+test.data <- X_shuffled[testIndexe, ]
+train.data <- X_shuffled[-testIndexe, ]
+# print("Shape of train data:")
+# print(dim(train.data))
+pred.error[i] <- pred_points(test.data, lambda=lambda, d=d, Kfunc, train.data)
 }
-pred(lambda=255, d=1, Kbox_i)
+print("Cross validation avg error rate: ")
+mean(pred.error)
+}
+
+# scales == 1, z-scored
+# scales == 2, quantiles
+# Kernel == 1, Box
+# Kernel == 2, Triangle
+# lambda is the smallest one to ensure the output is not NA.
+# z-scaled, Box kernel, Manhattan distance
+training(scales=1, lambda=1.3983, d=1, Kernel=1)
+# z-scaled, Box kernel, Euclidean distance
+training(scales=1, lambda=0.9243, d=2, Kernel=1)
+# quantile-scaled, Box kernel, Manhattan distance
+training(scales=2, lambda=0.4465, d=1, Kernel=1)
+# quantile-scaled, Box kernel, Euclidean distance
+training(scales=2, lambda=0.2583, d=2, Kernel=1)
+```
+
+The above $\lambda$ gives the smallest possible $\lambda$ 
+under the specific train/test partition setting (seed is set to 123)
+
+To be more save, we pick the following $\lambda$ as the smallest $\lambda$
+
+```{r}
+# z-scaled, Box kernel, Manhattan distance
+training(scales=1, lambda=1.5, d=1, Kernel=1)
+# z-scaled, Box kernel, Euclidean distance
+training(scales=1, lambda=1, d=2, Kernel=1)
+# quantile-scaled, Box kernel, Manhattan distance
+training(scales=2, lambda=0.5, d=1, Kernel=1)
+# quantile-scaled, Box kernel, Euclidean distance
+training(scales=2, lambda=0.5, d=2, Kernel=1)
+```
+
+Now we fix $\lambda = 3$ to compare the performance of different combination of scaling methods and distance metrics
+
+```{r}
+# z-scaled, Box kernel, Manhattan distance
+training(scales=1, lambda=4, d=1, Kernel=1)
+# z-scaled, Box kernel, Euclidean distance
+training(scales=1, lambda=4, d=2, Kernel=1)
+# quantile-scaled, Box kernel, Manhattan distance
+training(scales=2, lambda=2, d=1, Kernel=1)
+# quantile-scaled, Box kernel, Euclidean distance
+training(scales=2, lambda=2, d=2, Kernel=1)
 ```
 

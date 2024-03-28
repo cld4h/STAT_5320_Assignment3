@@ -55,8 +55,59 @@ Ahana Michael T00728755}
 \underline{Probability}
 
 \[
-P(\text{isGentoo}=1 \mid \mathbf{x}_0) = \hat{f}(\mathbf{x}_0) = \frac{\sum_{i=1}^{N} K_\lambda\left( \mathbf{x}_0, \mathbf{x}_i \right) y_i}{\sum_{i=1}^{N} K_\lambda\left( \mathbf{x}_0, \mathbf{x}_i \right)}
+P(\text{isGentoo}=1 \mid \mathbf{x}_0) = \hat{f}(\mathbf{x}_0) = \frac{\sum_{i=1}^{N} K_{Type, \lambda}\left( \mathbf{x}_0, \mathbf{x}_i \right) y_i}{\sum_{i=1}^{N} K_{Type,\lambda}\left( \mathbf{x}_0, \mathbf{x}_i \right)}
 \] 
+
+Where $\mathbf{x}_0$ is a new data point in the test dataset, $N$ is the size of training data set, $K_{Type, \lambda}$ is the kernel function, and $\lambda$ is the bandwidth, $y_i$ represent the label of the $i^{\text{th}}$ training data.
+
+\section{Question 2}
+
+We implemented 2 different types of kernels: Box and Triangle. 
+
+\begin{align*}
+K_{\text{Box}, \lambda}(\mathbf{x}_0, \mathbf{x}_i) &= 
+\begin{cases}
+1, &\quad d_{*}(\mathbf{x}_0, \mathbf{x}_i)<\lambda\\
+0, &\quad \text{otherwise}\\
+\end{cases}\\
+K_{\text{Triangle}, \lambda}(\mathbf{x}_0, \mathbf{x}_i) &= 
+\begin{cases}
+\frac{\lambda - d_{*}(\mathbf{x}_0, \mathbf{x}_i)}{\lambda}, &\quad d_{*}(\mathbf{x}_0, \mathbf{x}_i)<\lambda\\
+0, &\quad \text{otherwise}\\
+\end{cases}
+\end{align*}
+
+Where $d_{*}$ represent different types of distance metric: $d_{*} = d_{1}$ represent the $L_1$ (Manhattan) distance and $d_{*} = d_{2}$ represent the $L_2$ (Euclidean) distance.
+
+%$L_1$ (Manhattan) distance between $\mathbf{a}=(a_1,a_2,a_3,a_4)$ and $\mathbf{b}=(b_1,b_2,b_3,b_4)$:
+%\[
+%d_{1}(\mathbf{a},\mathbf{b})=|a_1-b_1|+|a_2-b_2|+|a_3-b_3|+|a_4-b_4|
+%.\] 
+%
+%$d_{*} = d_{2}$ represent the $L_2$ (Euclidean) distance between $\mathbf{a}=(a_1,a_2,a_3,a_4)$ and $\mathbf{b}=(b_1,b_2,b_3,b_4)$:
+%\[
+%d_{2}(\mathbf{a},\mathbf{b})=\sqrt{\left( a_1-b_1 \right) ^2+\left( a_2-b_2 \right) ^2+\left( a_3-b_3 \right) ^{2}+\left( a_4-b_4 \right) ^{2}} 
+%.\] 
+
+The output of our model is as follows:
+\[
+\text{Prediction}(\mathbf{x}_0)= 
+\begin{cases}
+1, &\quad P(\text{isGentoo}=1 \mid \mathbf{x}_0) = \hat{f}(\mathbf{x}_0) \ge 0.5\\
+0, &\quad \text{otherwise}\\
+\end{cases}
+\]
+If the probability of $\mathbf{x}_0$ to be Gentoo is greater than 50\%, we say it is Gentoo. \footnote{Here, this 50\% threshhold is arbitrarily selected. Theoratically, this threshhold can be any value in $\left( 0,1 \right) $ because we can use $\lambda$ to control the number of data points we included in our kernel. A lower threshold will result in a smaller $\lambda$ to get the best accuracy, vice versa.}
+
+Not creating a training/test partition is a bad idea because we can always use a very small $\lambda$ to achieve 100\% training accuracy\footnote{This is because no matter how unreasonably small the $\lambda$ is, we always have one correct data point $\mathbf{x}_0$ selected by our kernel.}. Therefore, we use 10-fold cross validation to train and test our data. We define our training score as the average of test error rates across all 10 folds as follows: ($N_i$ is the $i^{\text{th}}$ test partition)
+\[
+\text{ERROR}_{Type,\lambda,d} = \left(\sum_{i=1}^{10}  \frac{\sum_{j\in N_i} \text{err}(j)}{|N_i|} \right) \cdot \frac{1}{10}, \quad \text{err}(j)=
+\begin{cases}
+1, &\quad \text{Prediction}\left(\mathbf{x}_j \right) \neq y_j\\
+0, &\quad \text{otherwise}\\
+\end{cases}\\
+\] 
+
 
 \end{document}
 
