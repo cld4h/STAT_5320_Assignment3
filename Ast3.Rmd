@@ -1,5 +1,5 @@
 ---
-title: Ast3
+title: "Ast3 Appendix: Code"
 ---
 
 ```{r}
@@ -57,7 +57,7 @@ Kbox_p <- function(x, lambda=6, d=1, train.data){
 	return(result)
 }
 # Test on the 74th (1st Gentoo) data point
-Kbox_p(X[74,], lambda=6, d=1, train.data=X)
+#Kbox_p(X[74,], lambda=6, d=1, train.data=X)
 
 # Triangle Kernel function, x is a point
 Ktri_p <- function(x, lambda=6, d=1, train.data){
@@ -72,7 +72,7 @@ Ktri_p <- function(x, lambda=6, d=1, train.data){
 	return(result)
 }
 # Test on the 74th (1st Gentoo) data point
-Ktri_p(X[74,], lambda=6, d=1, X)
+#Ktri_p(X[74,], lambda=6, d=1, X)
 
 ################## Test on z-score scaled variables ###################
 #X <- t(rbind(mpenguins$zbill_length_mm, mpenguins$zbill_depth_mm, 
@@ -246,4 +246,145 @@ training(scales=2, lambda=2, d=1, Kernel=1)
 # quantile-scaled, Box kernel, Euclidean distance
 training(scales=2, lambda=2, d=2, Kernel=1)
 ```
+
+Now I realize that it's better to plot a Error-lambda plot to have a better comparison.
+
+```{r}
+# overwrite functions to stop printing results
+pred_points <- function(test.data, lambda, d, K_p, train.data){
+error <- NULL
+n <- dim(test.data)[1]
+for (i in 1:n){
+point_i <- test.data[i,-5]
+kernel_vector <- K_p(point_i, lambda=lambda, d=d, train.data[,-5])
+pred_i <- ifelse(sum(kernel_vector*train.data[,5])/sum(kernel_vector) >= 0.5,T,F)
+error <- c(error, ifelse(pred_i == test.data[i,5], 0, 1))
+}
+#print(error)
+return(sum(error)/n)
+}
+# scales == 1, z-scaled
+# scales == 2, quantiles
+# Kernel == 1, Box
+# Kernel == 2, Triangle
+training <- function(scales = 1, lambda = 6, d=1, Kernel=1 ){
+set.seed(123)
+# quantiles scaled data
+Xq <- t(rbind(mpenguins$qbill_length_mm, mpenguins$qbill_depth_mm, 
+	   mpenguins$qflipper_length_mm, mpenguins$qbody_mass_g, mpenguins$isGentoo))
+# z-score scaled data
+Xz <- t(rbind(mpenguins$zbill_length_mm, mpenguins$zbill_depth_mm, 
+	   mpenguins$zflipper_length_mm, mpenguins$zbody_mass_g, mpenguins$isGentoo))
+X <- Xz
+if (scales == 2){
+X <- Xq
+}
+Kfunc <- Kbox_p
+if ( Kernel == 2){
+Kfunc <- Ktri_p
+}
+X_shuffled = X[sample(nrow(X)),]
+K <- 10
+folds <- cut(seq(1, nrow(X_shuffled)), breaks=K, labels=FALSE)
+
+#if (K <= 10){
+## print the sample sizes when K-folds, K<= 10
+#print("Sample size of each fold")
+#print(table(folds))
+#}
+
+pred.error <- NULL # to store the prediction error results
+
+#print("Test result of each fold")
+for(i in 1:K){
+#Segement your data by fold using the which() function to hold-out (test sample)
+testIndexe <- which(folds==i, arr.ind=TRUE)
+# Split train-test set
+test.data <- X_shuffled[testIndexe, ]
+train.data <- X_shuffled[-testIndexe, ]
+# print("Shape of train data:")
+# print(dim(train.data))
+pred.error[i] <- pred_points(test.data, lambda=lambda, d=d, Kfunc, train.data)
+}
+#print("Cross validation avg error rate: ")
+return(mean(pred.error))
+}
+```
+
+```{r eval=FALSE}
+lambda1 = seq(1.3983, 15, by=0.5)
+lambda2 = seq(0.9243, 9, by=0.1)
+lambda3 = seq(0.4465, 9, by=0.1)
+lambda4 = seq(0.2583, 9, by=0.1)
+# z-scaled, Box kernel, Manhattan distance
+e1<-e2<-e3<-e4<-NULL
+for (lambda in lambda1){
+e1 <- c(e1, training(scales=1, lambda=lambda, d=1, Kernel=1))
+}
+# z-scaled, Box kernel, Euclidean distance
+for (lambda in lambda2){
+e2 <- c(e2, training(scales=1, lambda=lambda, d=2, Kernel=1))
+}
+# quantile-scaled, Box kernel, Manhattan distance
+for (lambda in lambda3){
+e3 <- c(e3, training(scales=2, lambda=lambda, d=1, Kernel=1))
+}
+# quantile-scaled, Box kernel, Euclidean distance
+for (lambda in lambda4){
+e4 <- c(e4, training(scales=2, lambda=lambda, d=2, Kernel=1))
+}
+```
+
+```{r eval=FALSE}
+pdf("ERROR-lambda1.pdf")
+plot(lambda4,e4,type="l", lty=4, col=4,ylab="ERROR",xlab="lambda") +
+	points(lambda3,e3,type="l",lty=3, col="darkblue") +
+	points(lambda2,e2,type="l",lty=2, col=2) +
+	points(lambda1,e1,type="l",lty=1, col=1)
+legend(x = "bottomright",          # Position
+       legend = c("quantile-scaled, Euclidean distance", "quantile-scaled, Manhattan distance", "z-scaled, Euclidean distance", "z-scaled, Manhattan distance"),  # Legend texts
+       lty = c(4, 3, 2, 1),           # Line types
+       col = c(4, "darkblue", 2, 1),           # Line colors
+       lwd = 2)                 # Line width
+dev.off()
+```
+```{r eval=FALSE}
+lambda1 = seq(1.3983, 15, by=0.5)
+lambda2 = seq(0.9243, 9, by=0.1)
+lambda3 = seq(0.4465, 9, by=0.1)
+lambda4 = seq(0.2583, 9, by=0.1)
+# z-scaled, Box kernel, Manhattan distance
+e1<-e2<-e3<-e4<-NULL
+for (lambda in lambda1){
+e1 <- c(e1, training(scales=1, lambda=lambda, d=1, Kernel=2))
+}
+# z-scaled, Box kernel, Euclidean distance
+for (lambda in lambda2){
+e2 <- c(e2, training(scales=1, lambda=lambda, d=2, Kernel=2))
+}
+# quantile-scaled, Box kernel, Manhattan distance
+for (lambda in lambda3){
+e3 <- c(e3, training(scales=2, lambda=lambda, d=1, Kernel=2))
+}
+# quantile-scaled, Box kernel, Euclidean distance
+for (lambda in lambda4){
+e4 <- c(e4, training(scales=2, lambda=lambda, d=2, Kernel=2))
+}
+```
+
+```{r eval=FALSE}
+pdf("ERROR-lambda2.pdf")
+plot(lambda4,e4,type="l", lty=4, col=4,ylab="ERROR",xlab="lambda", xlim=c(0,15)) +
+	points(lambda3,e3,type="l",lty=3, col="darkblue") +
+	points(lambda2,e2,type="l",lty=2, col=2) +
+	points(lambda1,e1,type="l",lty=1, col=1)
+legend(x = "bottomright",          # Position
+       legend = c("quantile-scaled, Euclidean distance", "quantile-scaled, Manhattan distance", "z-scaled, Euclidean distance", "z-scaled, Manhattan distance"),  # Legend texts
+       lty = c(4, 3, 2, 1),           # Line types
+       col = c(4, "darkblue", 2, 1),           # Line colors
+       lwd = 2)                 # Line width
+dev.off()
+```
+
+\mathbf{}
 
